@@ -95,6 +95,21 @@ export default function App() {
     testConnection();
   }, []);
 
+  // Auth Initial State & Redirect Handling
+  useEffect(() => {
+    const handleRedirect = async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        if (result?.user) {
+          console.log("Redirect login successful:", result.user.email);
+        }
+      } catch (err) {
+        console.error("Redirect login error:", err);
+      }
+    };
+    handleRedirect();
+  }, []);
+
   // Auth Listener
   useEffect(() => {
     // Timeout to prevent infinite loading if Firebase hangs
@@ -108,45 +123,38 @@ export default function App() {
     const unsubscribe = onAuthStateChanged(auth, async (u) => {
       clearTimeout(timer);
       
-      // Handle redirect result if any
-      try {
-        const result = await getRedirectResult(auth);
-        if (result?.user) {
-          console.log("Redirect login successful");
-        }
-      } catch (err) {
-        console.error("Redirect login error:", err);
+      if (!u) {
+        setUser(null);
+        setUserRole('employee');
+        setLoading(false);
+        return;
       }
 
+      // 1. Set user immediately so UI doesn't kick them out
+      setUser(u);
+
       try {
-        if (u) {
-          // Fetch or Create user profile
-          const userDocRef = doc(db, 'users', u.uid);
-          const userDoc = await getDoc(userDocRef);
-          
-          if (!userDoc.exists()) {
-            const role = adminEmails.includes(u.email || '') ? 'admin' : 'employee';
-            const newUser = {
-              email: u.email,
-              displayName: u.displayName,
-              role: role,
-              updatedAt: new Date().toISOString()
-            };
-            await setDoc(userDocRef, newUser);
-            setUserRole(role);
-          } else {
-            setUserRole(userDoc.data().role);
-          }
-          setUser(u);
+        // 2. Fetch or Create user profile
+        const userDocRef = doc(db, 'users', u.uid);
+        const userDoc = await getDoc(userDocRef);
+        
+        if (!userDoc.exists()) {
+          const role = adminEmails.includes(u.email || '') ? 'admin' : 'employee';
+          const newUser = {
+            email: u.email,
+            displayName: u.displayName,
+            role: role,
+            updatedAt: new Date().toISOString()
+          };
+          await setDoc(userDocRef, newUser);
+          setUserRole(role);
         } else {
-          setUser(null);
-          setUserRole('employee');
+          setUserRole(userDoc.data().role);
         }
       } catch (error: any) {
-        console.error("Auth listener error:", error);
-        if (error.code === 'permission-denied') {
-          alert("Lỗi phân quyền: Bạn không có quyền truy cập dữ liệu người dùng. Vui lòng thử đăng nhập lại hoặc liên hệ admin.");
-        }
+        console.error("Auth profile sync error:", error);
+        // Fallback: if we can't read the profile, assume they are an employee but stay logged in
+        setUserRole('employee');
       } finally {
         setLoading(false);
       }
@@ -165,21 +173,34 @@ export default function App() {
     return () => unsubscribe();
   }, [user]);
 
-  // Firestore Sync - Products
+  // Sync products from Firestore
   useEffect(() => {
     if (!user) return;
     
-    // We'll show public products + user's products
-    // For simplicity, let's just fetch all products for now if they are shared, 
-    // or filter by ownerId if preferred.
     const q = query(collection(db, 'products'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const prods = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
-      // If no products in DB yet, use initial ones
-      setProducts(prods.length > 0 ? prods : INITIAL_PRODUCTS);
+    const unsubscribe = onSnapshot(q, async (snapshot) => {
+      if (snapshot.empty && userRole === 'admin') {
+        // Seed initial products if DB is totally empty
+        console.log("Seeding initial products...");
+        try {
+          for (const p of INITIAL_PRODUCTS) {
+            const { id, ...data } = p;
+            await setDoc(doc(db, 'products', id), {
+              ...data,
+              ownerId: user.uid,
+              createdAt: new Date().toISOString()
+            });
+          }
+        } catch (e) {
+          console.error("Error seeding products:", e);
+        }
+      } else {
+        const prods = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+        setProducts(prods.length > 0 ? prods : INITIAL_PRODUCTS);
+      }
     });
     return () => unsubscribe();
-  }, [user]);
+  }, [user, userRole]);
 
   // Firestore Sync - Quotes
   useEffect(() => {

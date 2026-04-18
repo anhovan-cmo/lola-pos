@@ -208,6 +208,52 @@ export default function InventoryManagement({ products, currentUser, stockThresh
     doc.save(`Bao_cao_ton_kho_${format(new Date(), 'yyyyMMdd_HHmm')}.pdf`);
   };
 
+  const seedSampleInventory = async () => {
+    if (!currentUser) return;
+    setIsProcessingImport(true);
+    try {
+      const samples = [
+        { date: '2026-03-20', name: 'Sập gụ tủ chè (Khảm trai)', type: 'in' as const, qty: 2, lot: 'BATCH-01', reason: 'Nhập tồn kho đầu kỳ từ xưởng Đồng Kỵ', notes: 'Hàng tuyển chọn loại 1', user: 'Hàn Hồng' },
+        { date: '2026-03-21', name: 'Bàn ghế Trường kỷ (Tam sơn)', type: 'in' as const, qty: 3, lot: 'BATCH-02', reason: 'Nhập hàng mới trưng bày', notes: 'Gỗ gụ mật lâu năm', user: 'Gia Hân' },
+        { date: '2026-03-22', name: 'Tranh gỗ tứ quý', type: 'in' as const, qty: 5, lot: 'BATCH-03', reason: 'Nhập theo đơn đặt hàng', notes: 'Đục tay tinh xảo', user: 'Hàn Hồng' },
+        { date: '2026-03-23', name: 'Sập gụ tủ chè (Khảm trai)', type: 'out' as const, qty: 1, lot: '', reason: 'Xuất kho bàn giao khách Hải Phòng', notes: 'Đã kiểm tra kỹ mộng mẹo', user: 'Gia Hân' },
+        { date: '2026-03-24', name: 'Cuốn thư câu đối', type: 'in' as const, qty: 10, lot: 'BATCH-04', reason: 'Nhập lô hàng sơn son thếp vàng', notes: 'Chờ thợ hoàn thiện chữ', user: 'Hàn Hồng' }
+      ];
+
+      const batch = writeBatch(db);
+      for (const s of samples) {
+        const product = products.find(p => p.name === s.name);
+        if (!product) continue;
+
+        const txRef = doc(collection(db, 'inventory'));
+        batch.set(txRef, {
+          productId: product.id,
+          productName: product.name,
+          type: s.type,
+          quantity: s.qty,
+          lotNumber: s.lot || null,
+          expiryDate: null,
+          reason: s.reason,
+          notes: s.notes,
+          createdAt: new Date(s.date).toISOString(),
+          createdBy: s.user
+        });
+
+        const productRef = doc(db, 'products', product.id);
+        batch.update(productRef, {
+          stock: increment(s.type === 'in' ? s.qty : -s.qty)
+        });
+      }
+
+      await batch.commit();
+      alert("Đã nạp 05 dòng dữ liệu nghiệp vụ 'thật' vào hệ thống của bạn.");
+    } catch (e: any) {
+      alert("Lỗi nạp dữ liệu: " + e.message);
+    } finally {
+      setIsProcessingImport(false);
+    }
+  };
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -235,6 +281,8 @@ export default function InventoryManagement({ products, currentUser, stockThresh
             matchedProduct: product,
             parsedType: type,
             parsedQuantity: qty,
+            parsedDate: row['Ngày'] || row['Date'],
+            parsedUser: row['Người thực hiện'] || row['PerformedBy'],
             isValid: !!product && qty > 0
           };
         });
@@ -264,6 +312,19 @@ export default function InventoryManagement({ products, currentUser, stockThresh
         const type = row.parsedType;
         const qty = row.parsedQuantity;
 
+        // Try to parse historical date if provided
+        let createdAt = new Date().toISOString();
+        if (row.parsedDate) {
+          try {
+            const parsedDate = parseISO(row.parsedDate);
+            if (!isNaN(parsedDate.getTime())) {
+              createdAt = parsedDate.toISOString();
+            }
+          } catch (e) {
+            console.warn("Could not parse date from CSV:", row.parsedDate);
+          }
+        }
+
         // 1. Create Transaction
         const txRef = doc(collection(db, 'inventory'));
         batch.set(txRef, {
@@ -275,8 +336,8 @@ export default function InventoryManagement({ products, currentUser, stockThresh
           expiryDate: row['Hạn dùng'] || row['Expiry'] || null,
           reason: row['Lý do'] || row['Reason'] || 'Nhập từ file batch',
           notes: row['Ghi chú'] || row['Notes'] || '',
-          createdAt: new Date().toISOString(),
-          createdBy: currentUser.displayName || currentUser.email
+          createdAt: createdAt,
+          createdBy: row.parsedUser || currentUser.displayName || currentUser.email
         });
 
         // 2. Update Product Stock
@@ -316,9 +377,9 @@ export default function InventoryManagement({ products, currentUser, stockThresh
   };
 
   const downloadTemplate = () => {
-    const csvString = "\uFEFFBảo vật,Loại,Số lượng,Lý do,Ghi chú,Lô,Hạn dùng\n" + 
-                     "Chó đá cổ,Nhập,5,Nhập kho định kỳ,Hàng mới về,BATCH-01,2025-12-31\n" +
-                     "Khay trà gỗ trắc,Xuất,2,Giao khách,Đã thanh toán,,,";
+    const csvString = "\uFEFFNgày,Bảo vật,Loại,Số lượng,Lô,Hạn dùng,Lý do,Ghi chú,Người thực hiện\n" + 
+                     "2024-03-20,Chó đá cổ,Nhập,5,BATCH-01,2025-12-31,Nhập kho định kỳ,Hàng mới về,Hàn Hồng\n" +
+                     "2024-03-21,Khay trà gỗ trắc,Xuất,2,,,Giao khách,Đã thanh toán,Gia Hân";
     
     const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -1143,6 +1204,12 @@ export default function InventoryManagement({ products, currentUser, stockThresh
                         className="mt-4 px-8 py-3 bg-wood-900 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-lg shadow-wood-900/20 hover:bg-black transition-all active:scale-95"
                       >
                         Chọn từ Thiết bị
+                      </button>
+                      <button 
+                        onClick={seedSampleInventory}
+                        className="mt-4 ml-4 px-8 py-3 bg-amber-500 text-wood-900 rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-lg shadow-amber-500/20 hover:bg-amber-600 transition-all active:scale-95"
+                      >
+                        Nạp dữ liệu 'thật' mặc định
                       </button>
                       <input 
                         ref={fileInputRef}
