@@ -22,6 +22,8 @@ import { auth, db } from './lib/firebase.ts';
 import { 
   onAuthStateChanged, 
   signInWithPopup, 
+  signInWithRedirect,
+  getRedirectResult,
   GoogleAuthProvider, 
   signOut,
   User 
@@ -105,6 +107,17 @@ export default function App() {
 
     const unsubscribe = onAuthStateChanged(auth, async (u) => {
       clearTimeout(timer);
+      
+      // Handle redirect result if any
+      try {
+        const result = await getRedirectResult(auth);
+        if (result?.user) {
+          console.log("Redirect login successful");
+        }
+      } catch (err) {
+        console.error("Redirect login error:", err);
+      }
+
       try {
         if (u) {
           // Fetch or Create user profile
@@ -194,11 +207,30 @@ export default function App() {
 
   const handleLogin = async () => {
     const provider = new GoogleAuthProvider();
+    // Force account selection to avoid auto-login loops if there's an issue
+    provider.setCustomParameters({ prompt: 'select_account' });
+    
     try {
       await signInWithPopup(auth, provider);
     } catch (error: any) {
-      console.error("Login failed:", error);
-      alert(`Đăng nhập thất bại: ${error.message}\n\nLưu ý: Nếu bạn dùng tên miền riêng (pos.lola.com.vn), hãy đảm bảo đã thêm nó vào 'Authorized domains' trong cài đặt Firebase Authentication.`);
+      console.error("Login with popup failed:", error);
+      
+      const currentHost = window.location.hostname;
+      const errorCode = error.code;
+      
+      if (errorCode === 'auth/unauthorized-domain' || errorCode === 'auth/popup-blocked') {
+        console.log("Attempting fallback to redirect login...");
+        try {
+          await signInWithRedirect(auth, provider);
+        } catch (redirError: any) {
+          console.error("Redirect login failed:", redirError);
+          const message = `LỖI XÁC THỰC:\n\n1. Hãy copy tên miền này: ${currentHost}\n2. Dán vào 'Authorized domains' trong Firebase Console.\n\nChi tiết lỗi: ${redirError.message}`;
+          alert(message);
+        }
+      } else {
+        const message = `ĐĂNG NHẬP THẤT BẠI\n\n- Tên miền hiện tại: ${currentHost}\n- Mã lỗi: ${errorCode}\n\nHƯỚNG DẪN: Hãy chắc chắn tên miền trên đã được thêm vào danh sách 'Authorized domains' trong cài đặt Authentication của dự án NAS FUGALO.`;
+        alert(message);
+      }
     }
   };
 
