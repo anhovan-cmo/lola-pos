@@ -1,0 +1,89 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isRole(role) {
+      return isSignedIn() && (
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role ||
+        (role == 'admin' && (request.auth.token.email == 'anhovan.cmo@gmail.com' || request.auth.token.email == 'honggiahan644@gmail.com'))
+      );
+    }
+
+    function isAdmin() {
+      return isRole('admin');
+    }
+
+    function isAccountant() {
+      return isRole('accountant');
+    }
+    
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // User Management rules
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      allow update: if userId == request.auth.uid || isAdmin();
+    }
+
+    // Inventory rules
+    match /inventory/{transactionId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || isAccountant();
+    }
+
+    // Debt rules
+    match /debts/{debtId} {
+      allow list: if isAdmin() || isAccountant() || (isSignedIn() && resource.data.ownerId == request.auth.uid);
+      allow get: if isAdmin() || isAccountant() || isOwner(resource.data.ownerId);
+      allow write: if isAdmin() || isAccountant();
+    }
+
+    // Product rules
+    match /products/{productId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+      
+      function isValidProduct(data) {
+        return data.name is string && data.name.size() > 0 && data.name.size() < 256
+          && data.unitPrice is number && data.unitPrice >= 0
+          && data.unit in ['m', 'm2', 'each'];
+      }
+      
+      allow create: if isSignedIn() && isValidProduct(request.resource.data);
+      allow update: if isAdmin() && isValidProduct(request.resource.data);
+    }
+
+    // Quote rules
+    match /quotes/{quoteId} {
+      allow list: if isAdmin() || isAccountant() || (isSignedIn() && resource.data.ownerId == request.auth.uid);
+      allow get: if isAdmin() || isAccountant() || isOwner(resource.data.ownerId);
+      
+      function isValidQuote(data) {
+        return data.customerName is string && data.customerName.size() > 0
+          && data.totalAmount is number && data.totalAmount >= 0
+          && data.paidAmount is number && data.paidAmount >= 0
+          && (data.ownerId == request.auth.uid || isAdmin() || isAccountant());
+      }
+
+      allow create: if isSignedIn() && isValidQuote(request.resource.data);
+      allow update: if (isAdmin() || isOwner(resource.data.ownerId)) && isValidQuote(request.resource.data);
+      allow delete: if isAdmin() || isOwner(resource.data.ownerId);
+    }
+  }
+}

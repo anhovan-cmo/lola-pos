@@ -1,0 +1,122 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Sản phẩm",
+      "description": "Thông tin chi tiết về sản phẩm/bảo vật",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Tên sản phẩm" },
+        "category": { "type": "string", "description": "Danh mục sản phẩm" },
+        "unitPrice": { "type": "number", "description": "Đơn giá" },
+        "costPrice": { "type": "number", "description": "Giá vốn nhập kho" },
+        "unit": { "type": "string", "enum": ["m", "m2", "each"], "description": "Đơn vị tính" },
+        "stock": { "type": "number", "description": "Số lượng tồn kho" },
+        "description": { "type": "string", "description": "Mô tả chi tiết" },
+        "image": { "type": "string", "description": "Đường dẫn ảnh sản phẩm" }
+      },
+      "required": ["name", "unitPrice", "unit"]
+    },
+    "Calculation": {
+      "title": "Hạng mục tính toán",
+      "type": "object",
+      "properties": {
+        "productId": { "type": "string" },
+        "productName": { "type": "string" },
+        "length": { "type": "number" },
+        "width": { "type": "number" },
+        "quantity": { "type": "number" },
+        "unitPrice": { "type": "number" },
+        "unit": { "type": "string" },
+        "totalArea": { "type": "number" },
+        "totalPrice": { "type": "number" }
+      }
+    },
+    "Quote": {
+      "title": "Giao kèo / Báo giá",
+      "description": "Lịch sử giao dịch và báo giá cho khách hàng",
+      "type": "object",
+      "properties": {
+        "customerName": { "type": "string" },
+        "customerPhone": { "type": "string" },
+        "items": { 
+          "type": "array",
+          "items": { "$ref": "#/entities/Calculation" }
+        },
+        "totalAmount": { "type": "number" },
+        "paidAmount": { "type": "number", "description": "Số tiền khách đã trả" },
+        "status": { "type": "string", "enum": ["draft", "ordered", "completed", "cancelled"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "ownerId": { "type": "string", "description": "UID của người tạo" }
+      },
+      "required": ["customerName", "totalAmount", "status"]
+    },
+    "InventoryTransaction": {
+      "title": "Biến động kho",
+      "description": "Lịch sử nhập xuất tồn",
+      "type": "object",
+      "properties": {
+        "productId": { "type": "string" },
+        "productName": { "type": "string" },
+        "type": { "type": "string", "enum": ["in", "out", "adjust"] },
+        "quantity": { "type": "number" },
+        "lotNumber": { "type": "string", "description": "Số lô (Batch tracking)" },
+        "expiryDate": { "type": "string", "format": "date", "description": "Ngày hết hạn" },
+        "reason": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "createdBy": { "type": "string" }
+      },
+      "required": ["productId", "type", "quantity"]
+    },
+    "Debt": {
+      "title": "Công nợ",
+      "description": "Quản lý nợ phải thu và nợ phải trả",
+      "type": "object",
+      "properties": {
+        "type": { "type": "string", "enum": ["receivable", "payable"] },
+        "personName": { "type": "string" },
+        "amount": { "type": "number" },
+        "remainingAmount": { "type": "number" },
+        "dueDate": { "type": "string", "format": "date" },
+        "status": { "type": "string", "enum": ["pending", "partially_paid", "paid"] },
+        "relatedOrderId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "ownerId": { "type": "string" }
+      },
+      "required": ["type", "personName", "amount", "status"]
+    },
+    "User": {
+      "title": "Người dùng",
+      "description": "Thông tin nhân sự và quyền hạn",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "employee", "accountant"] },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["email", "role"]
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Kho bảo vật công khai hoặc riêng tư"
+    },
+    "/quotes/{quoteId}": {
+      "schema": "Quote",
+      "description": "Hồ sơ giao kèo của khách hàng"
+    },
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Phân quyền người dùng"
+    },
+    "/inventory/{transactionId}": {
+      "schema": "InventoryTransaction",
+      "description": "Nhật ký biến động kho bãi"
+    },
+    "/debts/{debtId}": {
+      "schema": "Debt",
+      "description": "Sổ cái quản lý công nợ"
+    }
+  }
+}

@@ -1,0 +1,76 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,900;1,900&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Cormorant Garamond", serif;
+  --font-display: "Playfair Display", serif;
+  
+  /* Antique Wooden Palette - Refined */
+  --color-wood-950: #1D1108;
+  --color-wood-900: #2D1B0D;
+  --color-wood-800: #4A2C17;
+  --color-wood-700: #6D4327;
+  --color-wood-600: #8E5D3D;
+  --color-wood-500: #A87652;
+  --color-wood-400: #C2936D;
+  --color-wood-300: #D8B79B;
+  --color-wood-200: #E5D8CC;
+  --color-wood-100: #F5E6DA;
+  --color-wood-50: #FAF3EC;
+}
+
+@layer base {
+  body {
+    @apply antialiased bg-[#FAF3EC] text-[#2D1B0D];
+    font-feature-settings: "cv02", "cv03", "cv04";
+  }
+
+  h1, h2, h3, h4 {
+    @apply font-display tracking-tight;
+  }
+}
+
+.font-serif {
+  font-family: var(--font-serif);
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+/* Custom scrollbar - antique brass effect */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #FAF3EC;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #8E5D3D;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #6D4327;
+}
+
+/* Classic card style */
+.antique-card {
+  @apply bg-white border border-[#E5D8CC] shadow-sm rounded-3xl overflow-hidden transition-all duration-300;
+}
+
+.antique-card:hover {
+  @apply shadow-xl shadow-wood-100/50 -translate-y-1;
+}
+
+/* Typography Helpers */
+.small-caps {
+  @apply text-[10px] font-black uppercase tracking-[0.2em] text-wood-400;
+}
+
+.serif-italic {
+  @apply font-serif italic text-wood-600;
+}

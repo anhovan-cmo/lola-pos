@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <!-- SEO Standard -->
+    <title>LOLA POS - Quản lý Kinh doanh Đồ gỗ & Cổ vật Cao cấp</title>
+    <meta name="description" content="LOLA POS - Hệ thống quản lý kinh doanh đồ gỗ mỹ nghệ và cổ vật cao cấp. Hỗ trợ quản lý kho bãi theo lô, báo cáo tài chính, và phác họa bảo vật bằng AI chuyên nghiệp." />
+    <meta name="keywords" content="LOLA POS, quản lý đồ gỗ, quản lý cổ vật, phần mềm pos, quản lý kho bãi, báo cáo tài chính, thiết kế đồ gỗ AI" />
+    <meta name="author" content="LOLA" />
+    <link rel="canonical" href="https://lola.com.vn" />
+
+    <!-- Open Graph / Social Media -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="LOLA POS - Hệ thống Quản lý Kinh doanh Chuyên nghiệp" />
+    <meta property="og:description" content="Quản lý kho bãi, tài chính và phác họa bảo vật bằng AI dành riêng cho ngành đồ gỗ mỹ nghệ và cổ vật." />
+    <meta property="og:image" content="https://picsum.photos/seed/lola-pos/1200/630" />
+    <meta property="og:url" content="https://lola.com.vn" />
+    <meta property="og:site_name" content="LOLA POS" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="LOLA POS - Giải pháp Quản lý Đồ gỗ Cổ nghệ" />
+    <meta name="twitter:description" content="Hệ thống POS tối ưu cho cửa hàng đồ gỗ mỹ nghệ và bảo vật cổ." />
+    <meta name="twitter:image" content="https://picsum.photos/seed/lola-pos-twitter/1200/630" />
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏺</text></svg>" />
+    
+    <!-- Fetch Defense: Prevents broken polyfills (like formdata-polyfill or legacy Gemini SDK) from crashing the UI -->
+    <script>
+      (function() {
+        try {
+          var originalFetch = window.fetch;
+          if (originalFetch) {
+            Object.defineProperty(window, 'fetch', {
+              configurable: false,
+              enumerable: true,
+              get: function() { return originalFetch; },
+              set: function() { console.warn('Blocked attempt to overwrite window.fetch'); }
+            });
+          }
+        } catch (e) {
+          // fetch might already be non-configurable
+        }
+      })();
+    </script>
+
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "LOLA POS",
+      "operatingSystem": "Web",
+      "applicationCategory": "BusinessApplication",
+      "description": "LOLA POS - Hệ thống quản lý kinh doanh đồ gỗ mỹ nghệ và cổ vật cao cấp. Hỗ trợ quản lý kho bãi theo lô, báo cáo tài chính, và phác họa bảo vật bằng AI.",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "VND"
+      },
+      "author": {
+        "@type": "Organization",
+        "name": "LOLA",
+        "url": "https://lola.com.vn"
+      }
+    }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+
